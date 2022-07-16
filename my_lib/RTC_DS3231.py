@@ -55,5 +55,6 @@ class RTC:
                 time_string = str(hour) + ":" + str(minute) + ":" + str(second) + "      " + weekday + " " + str(day) + "." + str(month) + "." + str(year)
                 return time_string
             #if you need different format, feel free to add
-        except:
-            return "Error: is the DS3231 not connected?"   #exception occurs in any case of error.
+        
+        except Exception as e:
+            return "Error: is the DS3231 not connected or some other problem (%s)" % e #exception occurs in any case of error.
