@@ -7,11 +7,11 @@ import machine
 
 #class for getting Realtime from the DS3231 in different modes.
 class RTC:
-    w = ["FRI","SAT","SUN","MON","TUE","WED","THU"] #if you want different names for Weekdays, feel free to add.
+    w = ["SAT","SUN","MON","TUE","WED","THU","FRI"] #if you want different names for Weekdays, feel free to add.
     #w = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"]
     
     #initialisation of RTC object. Several settings are possible but everything is optional. If you meet this standards no parameter's needed.
-    def __init__(self, sda_pin=16, scl_pin=17, port=0, speed=100000, address=0x68, register=0x00):
+    def __init__(self, sda_pin=2, scl_pin=3, port=1, speed=100000, address=0x68, register=0x00):
         self.rtc_address = address      #for using different i2c address
         self.rtc_register = register    #for using different register on device. DON'T change for DS3231
         sda=machine.Pin(sda_pin)        #configure the sda pin
@@ -19,7 +19,7 @@ class RTC:
         self.i2c=machine.I2C(port,sda=sda, scl=scl, freq=speed) #configure the i2c interface with given parameters
 
     #function for setting the Time
-    def DS3231_SetTime(self, NowTime = b'\x00\x23\x12\x28\x14\x07\x21'):
+    def DS3231_SetTime(self, NowTime = b'\x00\x00\x40\x16\x23\x08\x22'):
         # NowTime has to be in format like b'\x00\x23\x12\x28\x14\x07\x21'
         # It is encoded like this           sec min hour week day month year
         # Then it's written to the DS3231
@@ -31,7 +31,7 @@ class RTC:
 
     #add a 0 in front of numbers smaler than 10
     def pre_zero(self, value):
-        pre_zero = True #change to False if you don't want a "0" in fron of numbers smaler than 10
+        pre_zero = True #change to False if you don't want a "0" in front of numbers smaller than 10
         if pre_zero:
             if value < 10:
                 value = "0"+str(value)  #from now the value is a string!
@@ -44,8 +44,8 @@ class RTC:
             year = self.bcd2bin(buffer[6]) + 2000           #the year consists of 2 digits. Here 2000 years are added to get format like "2021"
             month = self.bcd2bin(buffer[5])                 #just put the month value in the month variable and convert it.
             day = self.bcd2bin(buffer[4])                   #same for the day value
-            weekday = self.w[self.bcd2bin(buffer[3])]       #weekday will be converted in the weekdays name or shortform like "Sunday" or "SUN"
-            #weekday = self.bcd2bin(buffer[3])              #remove comment in this line if you want a number for the weekday and comment the line before.
+            weekday = self.w[(self.bcd2bin(buffer[3])-1)]   #weekday will be converted in the weekdays name or shortform like "Sunday" or "SUN"
+            #weekday = self.bcd2bin(buffer[3])-1             #remove comment in this line if you want a number for the weekday and comment the line before.
             hour = self.pre_zero(self.bcd2bin(buffer[2]))   #convert bcd to bin and add a "0" if necessary
             minute = self.pre_zero(self.bcd2bin(buffer[1])) #convert bcd to bin and add a "0" if necessary
             second = self.pre_zero(self.bcd2bin(buffer[0])) #convert bcd to bin and add a "0" if necessary
@@ -53,6 +53,14 @@ class RTC:
                 return second, minute, hour, weekday, day, month, year
             if mode == 1:   #mode 1 returns a formated string with time, weekday and date
                 time_string = str(hour) + ":" + str(minute) + ":" + str(second) + "      " + weekday + " " + str(day) + "." + str(month) + "." + str(year)
+                return time_string
+            if mode == 2:   #mode 2 returns a formated string with 12hr time, am/pm, weekday and month.day.year
+                meridian = "am"
+                if (hour:= int(hour)) > 12: #12 hr format.
+                    hour -=12
+                    meridian = "pm"
+                hour = self.pre_zero(hour)
+                time_string = str(hour) + ":" + str(minute) + ":" + str(second) + " " + meridian + "    " + weekday + " " + str(month) + "." + str(day) + "." + str(year)
                 return time_string
             #if you need different format, feel free to add
         
